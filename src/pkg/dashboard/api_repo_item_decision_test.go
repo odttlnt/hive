@@ -49,10 +49,6 @@ type repoItemDecisionMock struct {
 	// an adoption marker on #8 may name (hivecommons/hive#15052); "" is 404.
 	supersederState  string
 	supersederMerged bool
-	// merges records PUT /pulls/8/merge bodies; reviews the POST /reviews
-	// bodies (merge-now / queue-merge, hivecommons/hive#15078).
-	merges  []map[string]any
-	reviews []map[string]any
 }
 
 func newRepoItemDecisionServer(t *testing.T, m *repoItemDecisionMock) *Server {
