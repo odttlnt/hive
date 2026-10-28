@@ -192,6 +192,9 @@ type PullRequestDecisionEvent struct {
 	// or "approve" (an approval word followed by optional rationale).
 	Mode       string
 	CommentURL string
+	// ParkLabelsLifted counts the park labels (needs-human, the 085 stage
+	// label) the decision took off in the same write.
+	ParkLabelsLifted int
 }
 
 // IssueLabelApprovalEvent records one acceptance the sweep acted on, for the

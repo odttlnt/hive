@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/hivecommons/hive/pkg/authorkind"
 	"github.com/hivecommons/hive/pkg/review"
+	"github.com/hivecommons/hive/pkg/stagelabels"
 )
 
 // Operator decisions on a pull request parked at stage/085-needs-decision,
@@ -242,15 +244,9 @@ func ParsePRApprovalCommandComment(body string) (command, actor, head string, ok
 	return command, actor, head, true
 }
 
-// openPullRequestHead returns the PR's head SHA and whether the hive opened
-// it, or ErrPullRequestClosed / a not-found error.
-func (c *Client) openPullRequestHead(ctx context.Context, owner, name string, number int) (head string, selfAuthored bool, err error) {
-	head, selfAuthored, _, err = c.openPullRequestHeadLabels(ctx, owner, name, number)
-	return head, selfAuthored, err
-}
-
-// openPullRequestHeadLabels is openPullRequestHead plus the PR's labels as
-// read in the same fetch.
+// openPullRequestHeadLabels returns the PR's head SHA, whether the hive
+// opened it, and its labels from the same fetch, or ErrPullRequestClosed /
+// a not-found error.
 func (c *Client) openPullRequestHeadLabels(ctx context.Context, owner, name string, number int) (head string, selfAuthored bool, labels []string, err error) {
 	pr, resp, err := c.client.PullRequests.Get(ctx, owner, name, number)
 	if err != nil {
@@ -352,12 +348,8 @@ func (c *Client) RecordOperatorPullRequestApprovalWith(ctx context.Context, repo
 		}
 		event.Recorded = true
 	}
-	if opts.LiftNeedsHuman && labelPresent(labels, issueNeedsHumanLabel) {
-		if err := c.RemoveLabel(ctx, full, number, issueNeedsHumanLabel); err != nil {
-			c.warnOperatorApproval("needs-human not lifted", full, number, head, err)
-		} else {
-			event.NeedsHumanLifted = true
-		}
+	if opts.LiftNeedsHuman {
+		event.NeedsHumanLifted = slices.Contains(c.liftPRDecisionParkLabels(ctx, full, number, head, labels), issueNeedsHumanLabel)
 	}
 	if label := strings.TrimSpace(opts.SentinelLabel); label != "" {
 		if labelPresent(labels, label) {
@@ -426,7 +418,7 @@ func (c *Client) RecordOperatorPullRequestDecision(ctx context.Context, repo str
 	if store == nil {
 		return PullRequestDecisionEvent{}, fmt.Errorf("RecordOperatorPullRequestDecision: no human change request store")
 	}
-	head, selfAuthored, err := c.openPullRequestHead(ctx, owner, name, number)
+	head, selfAuthored, labels, err := c.openPullRequestHeadLabels(ctx, owner, name, number)
 	if err != nil {
 		return PullRequestDecisionEvent{}, err
 	}
@@ -452,12 +444,40 @@ func (c *Client) RecordOperatorPullRequestDecision(ctx context.Context, repo str
 	if err := store.Record(req); err != nil {
 		return PullRequestDecisionEvent{}, fmt.Errorf("recording dashboard decision on %s/%s#%d: %w", owner, name, number, err)
 	}
+	event := PullRequestDecisionEvent{Repo: owner + "/" + name, Number: number, HeadSHA: head, Actor: actor, Decision: decision, Mode: string(mode)}
+	// The decision answers the park: the labels that asked for it come off
+	// in the same write, or the next label-derived pass re-parks the row
+	// the person just un-parked.
+	event.ParkLabelsLifted = len(c.liftPRDecisionParkLabels(ctx, event.Repo, number, head, labels))
 	stage := c.applyPRDecisionStage(ctx, owner, name, number, head, actor, mode, selfAuthored)
 	body := renderPRDecisionReply(actor, head, mode) + "\n\n_Recorded from the hive dashboard._"
 	if err := c.postUnparkReply(ctx, owner, name, number, operatorDecisionMarkerID, body); err != nil {
 		return PullRequestDecisionEvent{}, err
 	}
-	event := PullRequestDecisionEvent{Repo: owner + "/" + name, Number: number, HeadSHA: head, Actor: actor, Decision: decision, Mode: string(mode)}
 	c.logPRDecision(event.Repo, number, head, actor, mode, stage, false)
 	return event, nil
+}
+
+// prDecisionParkLabels are the labels a recorded decision on a pull
+// request answers: the needs-human ask and the 085 needs-decision stage
+// label (current and legacy). `hold` is never among them.
+var prDecisionParkLabels = []string{issueNeedsHumanLabel, stagelabels.NeedsDecision.Label(), NeedsDecisionStageLabel}
+
+// liftPRDecisionParkLabels removes every prDecisionParkLabels entry present
+// in labels from repo#number and returns the ones it removed. A failed
+// removal is logged, not returned: the decision record stands and the
+// stage engine's park-lift derives the same answer.
+func (c *Client) liftPRDecisionParkLabels(ctx context.Context, repo string, number int, head string, labels []string) []string {
+	var lifted []string
+	for _, label := range prDecisionParkLabels {
+		if !labelPresent(labels, label) {
+			continue
+		}
+		if err := c.RemoveLabel(ctx, repo, number, label); err != nil {
+			c.warnOperatorApproval(label+" not lifted", repo, number, head, err)
+			continue
+		}
+		lifted = append(lifted, label)
+	}
+	return lifted
 }
