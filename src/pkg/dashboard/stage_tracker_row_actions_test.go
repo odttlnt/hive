@@ -23,6 +23,10 @@ func stageTrackerRowActionsPreamble(t *testing.T, html string) string {
 		jsConstLine(t, html, "STAGE_TRACKER_MENU_FAIL_LINES"),
 		jsConstBlock(t, html, "STAGE_TRACKER_DECISION_GLOSSARY"),
 		jsFunc(t, html, "stageTrackerPlainWords"),
+		jsConstLine(t, html, "STAGE_TRACKER_STAMP_RE"),
+		jsFunc(t, html, "stageTrackerShortAgo"),
+		jsFunc(t, html, "stageTrackerStampWords"),
+		jsFunc(t, html, "stageTrackerStampsToWords"),
 		jsConstBlock(t, html, "STAGE_TRACKER_ACTION_LABELS"),
 		jsConstLine(t, html, "STAGE_TRACKER_WHY_WRITE"),
 		jsConstLine(t, html, "STAGE_TRACKER_WHY_ROLE"),
@@ -996,14 +1000,43 @@ assert.ok(text.outcome.startsWith('No change — hive already recorded this deci
 // hivecommons/hive#14822: a recorded decision that never took effect is a
 // warning that says why in plain words and carries the next actions.
 const stuck = { action: 'no-effect', rule: 'contributor-offline', why: 'self-decision-read-as-changes', target, applied_at: '2026-10-28T13:01:29Z',
-  outcome: "Hive decided close this PR and open a fresh hive-authored PR with the same commits at 2026-10-28T13:01:29Z, but it hasn't taken effect: hive's own decision comment was read as a reviewer asking for changes.",
+  outcome: "Close this PR and open a fresh hive-authored PR with the same commits at 2026-10-28T13:01:29Z, but it hasn't taken effect: hive's own decision comment was read as a reviewer asking for changes.",
   next: 'Options: Merge as maintainer (on GitHub) · Re-run decision · Close as superseded · Send back for a new commit.',
   options: [{ action: 'open:github', label: 'Merge as maintainer (on GitHub)', enabled: true }, { action: 'decide:delegate:rerun', label: 'Re-run decision', enabled: true }, { action: 'decide:close-superseded', label: 'Close as superseded', enabled: false, reason_if_disabled: 'write required' }, { action: 'decide:direction', label: 'Send back for a new commit', enabled: true }, { label: 'no action' }] };
-text = stageTrackerResultText(stuck, issue, { id: 'decide:delegate' });
-assert.strictEqual(text.head, "Hive decided on o/r#14938 → PR #14947: decided, but it hasn't taken effect (the author's hive hasn't been connected since the nudge)");
+const stuckNow = Date.parse('2026-10-28T15:01:29Z');
+text = stageTrackerResultText(stuck, issue, { id: 'decide:delegate', nowMs: stuckNow });
+assert.strictEqual(text.head, "Hive decided on o/r#14938 → PR #14947: no effect yet (the author's hive hasn't been connected since the nudge)", 'the headline does not say "decided" twice');
 assert.strictEqual(text.type, 'warning'); assert.strictEqual(text.options.length, 4, 'options without an action are dropped');
 assert.ok(text.why.startsWith('The merge gate read the hive'), text.why);
 assert.ok(!/contributor-offline|self-decision/.test(text.head + text.outcome + text.why), 'no bare slug reaches the operator');
+// The RFC3339 stamp the server wrote is read in the operator's clock.
+assert.ok(!/\d{4}-\d{2}-\d{2}T/.test(text.outcome), 'no raw ISO stamp: ' + text.outcome);
+assert.ok(text.outcome.indexOf(' at 2h ago') > 0, text.outcome);
+// The clock in parentheses depends on the dashboard timezone helper being
+// loaded (and the zone), so only its presence is checked.
+const stampRe = (rel) => new RegExp('^' + rel + '( \\(\\d{1,2}:\\d{2} [AP]M\\))?$');
+assert.match(stageTrackerStampWords('2026-10-28T13:01:29Z', stuckNow), stampRe('2h ago'));
+assert.match(stageTrackerStampWords('2026-10-28T15:13:29Z', stuckNow), stampRe('in 12m'));
+assert.match(stageTrackerStampWords('2026-10-28T15:01:40Z', stuckNow), stampRe('just now'));
+assert.strictEqual(stageTrackerStampWords('not a date', stuckNow), 'not a date');
+assert.match(stageTrackerStampsToWords('Expected by 2026-10-28T15:31:29Z: x.', stuckNow), /^Expected by in 30m( \(.+\))?: x\.$/);
+// hivecommons/hive#15021: an ISSUE's approve is never "approved for merge",
+// and a stuck 045 park label is named with the lift as the first option.
+const issueTarget = { repo: 'o/r', kind: 'issue', number: 15021, url: 'u15021' };
+const stuckIssue = { action: 'no-effect', rule: 'default-approve', why: 'park-label-stuck', target: issueTarget, applied_at: '2026-10-28T13:01:29Z',
+  outcome: "Approved to proceed — an agent may claim it at 2026-10-28T13:01:29Z, but it hasn't taken effect: stage/045-needs-decision is still on the issue; the scanner skips it until that label clears.",
+  next: 'Expected: the issue leaves Needs decision and an agent picks it up. Options: Lift the park (remove stage/045-needs-decision) · Re-evaluate now · Re-run decision · Give direction.',
+  options: [{ action: 'decide:approve', label: 'Lift the park (remove stage/045-needs-decision)', enabled: true }, { action: 'retry', label: 'Re-evaluate now', enabled: true }, { action: 'decide:delegate:rerun', label: 'Re-run decision', enabled: true }, { action: 'decide:direction', label: 'Give direction', enabled: true }] };
+text = stageTrackerResultText(stuckIssue, Object.assign({}, issue, { kind: 'issue', number: 15021 }), { id: 'decide:delegate', rowRef: 'o/r#15021', nowMs: stuckNow });
+assert.strictEqual(text.head, 'Hive decided on o/r#15021: no effect yet (no special rule applies; the hive took its own recommendation)');
+assert.ok(text.outcome.indexOf('approved for merge') < 0, text.outcome);
+assert.ok(text.why.startsWith('The hive approved the issue and applied approved-direction'), text.why);
+assert.strictEqual(text.options[0].action, 'decide:approve', 'the lift is the first option');
+assert.strictEqual(stageTrackerPlainWords('approve', false, 'issue'), 'approved to proceed — an agent may claim it');
+assert.strictEqual(stageTrackerPlainWords('approve', false, 'pr'), 'approved for merge');
+assert.strictEqual(stageTrackerPlainWords('approve'), 'approved for merge', 'no kind reads as a PR');
+assert.strictEqual(stageTrackerPlainWords('close-superseded', true, 'issue'), 'Closed because another issue already tracks the same work; the discussion continues there.');
+assert.strictEqual(stageTrackerPlainWords('close-duplicate', false, 'issue'), 'closed as a duplicate', 'an entry without issue words keeps its plain words');
 assert.strictEqual(stageTrackerPlainWords('supersede'), 'close this PR and open a fresh hive-authored PR with the same commits');
 assert.strictEqual(stageTrackerPlainWords('adoption-stalled:contributor-offline'), "the author's hive hasn't been connected since the nudge");
 assert.strictEqual(stageTrackerPlainWords('contributor-lane:changes-requested'), stageTrackerPlainWords('changes_requested'));
