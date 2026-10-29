@@ -49,6 +49,9 @@ type repoItemDecisionMock struct {
 	// an adoption marker on #8 may name (hivecommons/hive#15052); "" is 404.
 	supersederState  string
 	supersederMerged bool
+	// commitBy maps a head SHA to the login GET /commits/{sha} reports as
+	// its committer; an unlisted SHA reads as a person's push.
+	commitBy map[string]string
 }
 
 func newRepoItemDecisionServer(t *testing.T, m *repoItemDecisionMock) *Server {
@@ -130,6 +133,17 @@ func newRepoItemDecisionServer(t *testing.T, m *repoItemDecisionMock) *Server {
 			}
 		case r.Method == http.MethodGet && strings.HasSuffix(path, "/commits/feedfacefeedfacefeedfacefeedfacefeedface/check-runs"):
 			_, _ = io.WriteString(w, `{"total_count":0,"check_runs":[]}`)
+		case r.Method == http.MethodGet && strings.Contains(path, "/commits/") && !strings.HasSuffix(path, "/status") && !strings.HasSuffix(path, "/check-runs"):
+			sha := path[strings.LastIndex(path, "/")+1:]
+			login, typ := "someone", "User"
+			if by, ok := m.commitBy[sha]; ok {
+				login = by
+				if strings.HasSuffix(by, "[bot]") {
+					typ = "Bot"
+				}
+			}
+			who := map[string]any{"login": login, "type": typ}
+			_ = json.NewEncoder(w).Encode(map[string]any{"sha": sha, "author": who, "committer": who, "commit": map[string]any{"author": map[string]any{"name": login, "email": login + "@example.com"}, "committer": map[string]any{"name": login, "email": login + "@example.com"}}})
 		case r.Method == http.MethodGet && strings.Contains(path, "/timeline"):
 			_, _ = io.WriteString(w, `[]`)
 		case r.Method == http.MethodGet && (strings.HasSuffix(path, "/pulls/8/commits") || strings.HasSuffix(path, "/pulls/8/reviews")):
