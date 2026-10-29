@@ -478,10 +478,12 @@
     }
     /* Drawer toggle. Hidden on desktop; the ≤1024px block flips it to
        inline-flex. It lives with the project title so the center run-state
-       group remains visually anchored. */
+       group remains visually anchored. No negative margin: .oc-topbar-left
+       clips overflow, so anything pulled past its left edge is cut off —
+       on phones that showed up as a half-circle hamburger (#15476). */
     #oc-drawer-toggle {
       display: none;
-      margin-left: -10px;
+      flex: 0 0 auto;
     }
     #oc-drawer-backdrop { display: none; }
     .oc-topbar-center { container: navbar-center / inline-size; position: relative; z-index: 1; justify-self: stretch; display: flex; align-items: center; justify-content: center; gap: var(--nav-chip-gap, 8px); min-width: 0; max-width: 100%; overflow: hidden; }
@@ -1328,8 +1330,10 @@
        Review, 085/090 on Merge gate) light the chevron they branch from in
        their own words, so every strip is the same width. An issue parked on
        a person (045) lights Actionable with the decision word. */
-    /* The sticky chip bar's height (the header strip sticks beneath it): the 28 px bee plus the chip's padding and border plus the bar's own padding. */
-    #activity-monitor-section { --ham-sticky-bar-h: 40px; }
+    /* The sticky chip bar's height (the header strip sticks beneath it):
+       the Merged pill (--ham-merged-bee + 2 × --sp-1 tall) plus the bar's
+       own vertical padding. */
+    #activity-monitor-section { --ham-sticky-bar-h: 42px; }
     /* Layers for the merge flight glyph and the merged-toast stack. Both are
        appended to document.body, not to #activity-monitor-section, so these must be
        :root-scoped — scoped to the section they resolved to nothing, the
@@ -1430,20 +1434,29 @@
        is left and gives way to the chip, which lives in the cap cell. */
     .ham-head-cols .ham-seg.ham-head-lead { flex: 0 0 calc((100% - 4em - 6 * var(--sp-1)) / 2 + 2 * var(--sp-1)); padding: 0 var(--sp-6) 0 0; }
     .ham-head-cols .ham-seg.ham-head-lead.ham-head-wide { flex: 1 1 0; }
-    .ham-head-cols .ham-seg.ham-head-pr { flex: 1 1 0; flex-direction: column; }
+    /* The PR cell is one line: connector, author icon + #N + title, lineage
+       chip and base pill sit side by side; the lineage chip gives way first
+       (flex-shrink 2), then the title (1), the pills and the connector never shrink
+       (hivecommons/hive "consolidate from 3 lines of text to 1"). */
+    .ham-head-cols .ham-seg.ham-head-pr { flex: 1 1 0; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: var(--sp-2); min-width: 0; overflow: hidden; }
+    .ham-head-cols .ham-seg.ham-head-pr > .ham-linked-ico, .ham-head-cols .ham-seg.ham-head-pr > .ham-badge { flex: 0 0 auto; }
+    .ham-head-cols .ham-seg.ham-head-pr > .ham-lineage, .ham-head-cols .ham-seg.ham-head-pr > .ham-adopted-from { display: block; flex: 0 2 auto; min-width: 7em; overflow: hidden; text-overflow: ellipsis; }
+    .ham-head-cols .ham-seg.ham-head-pr > .ham-lineage > .ham-author-ico { vertical-align: text-bottom; margin-right: var(--sp-1); }
+    .ham-head-cols .ham-seg.ham-head-pr > .ham-pr-ref, .ham-head-cols .ham-seg.ham-head-pr > .ham-pr-line { flex: 0 1 auto; }
     /* The chip hugs the bottom of the title block (align-items: flex-end
        inside the stretched cap cell): on a two-line title it sits on the
        second line, directly over the strip it describes, never up at the
        previous entry's edge. */
     .ham-head-cols .ham-seg.cap { flex: 0 0 auto; min-width: 4em; overflow: visible; align-items: flex-end; justify-content: flex-end; padding: 0; }
     .ham-head-cols .ham-seg.cap .ham-badges { position: static; }
-    .ham-head-main { display: flex; flex: 1; align-items: flex-start; gap: var(--sp-3); min-width: 0; }
-    .ham-pr-ref { display: inline-flex; align-items: flex-start; gap: var(--sp-2); min-width: 0; max-width: 100%; color: var(--muted); text-decoration: none; font-size: var(--fs-xs); }
+    .ham-head-main { display: flex; flex: 1; align-items: center; gap: var(--sp-3); min-width: 0; overflow: hidden; }
+    .ham-head-main > .ham-badge { flex: 0 0 auto; }
+    .ham-pr-ref { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; max-width: 100%; overflow: hidden; color: var(--muted); text-decoration: none; font-size: var(--fs-xs); }
     .ham-pr-ref:hover { color: var(--text); }
     .ham-linked-ico { color: var(--text-faint); font-size: var(--fs-xs); margin-right: var(--sp-1); }
     .ham-pr-ref:hover .ham-pr-num { text-decoration: underline; }
     .ham-pr-num { flex: 0 0 auto; white-space: nowrap; }
-    .ham-pr-title { min-width: 0; white-space: normal; overflow-wrap: anywhere; color: var(--text-faint); }
+    .ham-pr-title { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-faint); }
     /* Author kind is the one coloured legend: hive blue / clanker purple
        (the author/* label colours), human teal. */
     .ham-author-ico { width: 13px; height: 13px; flex: 0 0 auto; color: var(--text-faint); }
@@ -1456,7 +1469,7 @@
     .ham-kind-ico { flex: 0 0 auto; width: 12px; height: 12px; color: var(--text-faint); }
     .ham-ref { flex: 0 0 auto; color: var(--muted); text-decoration: none; white-space: nowrap; }
     .ham-ref:hover { text-decoration: underline; color: var(--text); }
-    .ham-title { color: var(--text); white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+    .ham-title { flex: 0 1 auto; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     /* Issue slot of a PR row that has no open issue: muted placeholder. */
     .ham-no-issue .ham-kind-ico { opacity: 0.55; }
     .ham-no-issue-t { color: var(--text-faint); font-style: italic; }
@@ -1484,7 +1497,7 @@
     .ham-repo-tint-4 { --ham-repo-tint: var(--ham-repo-tint-4); }
     .ham-repo-tint-5 { --ham-repo-tint: var(--ham-repo-tint-5); }
     .ham-repo-chip.ham-repo-primary { --ham-repo-tint: var(--text-muted); }
-    .ham-pr-line { display: inline-flex; align-items: flex-start; gap: var(--sp-2); min-width: 0; max-width: 100%; }
+    .ham-pr-line { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; max-width: 100%; overflow: hidden; }
     /* Group-by-repo header row: sticky under the column header while its
        rows scroll, caret toggle, chip, owner/repo, counts, and a mini
        per-column distribution (bar height steps ham-gd-1..4 from the group's
@@ -1765,28 +1778,48 @@
     .cue-flight.cue-flight-fade { animation: cue-flight-fade var(--cue-fly-ms, 2000ms) ease-out both; }
     .ham-sticky { position: sticky; top: var(--navbar-sticky-height); z-index: calc(var(--z-sticky) + 1); display: flex; justify-content: flex-end; align-items: center; min-height: var(--ham-sticky-bar-h); box-sizing: border-box; padding: var(--sp-1) var(--sp-2); background: var(--panel); }
     .ham-sticky-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .ham-merged-count { position: relative; display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--text); cursor: pointer; }
+    /* The Merged pill (hivecommons/hive issue 15398 follow-up — "where is my
+       odometer look and feel?"): PR 15409 only enlarged the *flying* bee
+       (.cue-flight) and the roll was a 900 ms overlay over plain text, so
+       at rest the pill was a 12 px hexagon and a bold number. Now the
+       hexagon-bee is --ham-merged-bee (28 px) and the pill grows to fit it,
+       and the all-time count is a drum of wheels at rest, always: each
+       digit in its own dark inset cell (.ham-merged-n .ham-odo-col) with
+       a roller gradient, a top/bottom inner shadow and a hairline between
+       cells, monospace tabular digits at --ham-odo-digit (≥ 18 px). The
+       day/week line keeps its size and rolls with the same columns, drawn
+       plain. A wheel that changes (.ham-odo-roll) slides its strip through
+       the digits it passes (--odo-shift) over --odo-ms; reduced motion
+       swaps instantly (no transition; the strip is drawn at its end). */
+    :root { --ham-merged-bee: 28px; --ham-odo-digit: 18px; }
+    .ham-merged-count { position: relative; display: inline-flex; align-items: center; gap: var(--sp-2); min-height: calc(var(--ham-merged-bee) + 2 * var(--sp-1)); color: var(--text); cursor: pointer; }
     .ham-merged-count:hover { border-color: var(--line-strong); }
-    .ham-merged-count .ham-merged-ico { width: 28px; height: 28px; flex: 0 0 auto; color: var(--amber); }
-    .ham-merged-count .ham-merged-n { font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); font-size: var(--fs-xl); font-family: var(--font-mono); line-height: 1.25; letter-spacing: 0.3em; text-indent: 0.15em; border-radius: var(--r-sm); background-color: color-mix(in srgb, var(--surface-3) 60%, #000); background-image: repeating-linear-gradient(90deg, transparent 0, transparent calc(1ch + 0.3em - 1px), color-mix(in srgb, var(--text) 24%, transparent) calc(1ch + 0.3em - 1px), color-mix(in srgb, var(--text) 24%, transparent) calc(1ch + 0.3em)); box-shadow: inset 0 3px 4px -1px rgba(0, 0, 0, 0.7), inset 0 -3px 4px -1px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--line-subtle); }
-    /* At rest the all-time count is a mechanical odometer (hivecommons/hive#15469): a monospace digit per drum cell, the thin dividers drawn at every cell width (1ch + the letter spacing), and a roller gradient (dark at the top and bottom edge, lit across the middle) laid over the digits. All of it is paint on the plain text, so the text stays the real value for width, tests and screen readers. */
-    .ham-merged-count .ham-merged-n::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.12) 28%, rgba(255, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0.12) 72%, rgba(0, 0, 0, 0.55) 100%); }
-    body.light-mode .ham-merged-count .ham-merged-n { background-color: color-mix(in srgb, var(--surface-3) 86%, #64748b); box-shadow: inset 0 3px 4px -1px rgba(15, 23, 42, 0.35), inset 0 -3px 4px -1px rgba(15, 23, 42, 0.25), 0 0 0 1px var(--line-subtle); }
-    body.light-mode .ham-merged-count .ham-merged-n::after { background: linear-gradient(180deg, rgba(15, 23, 42, 0.28) 0%, rgba(15, 23, 42, 0.05) 28%, rgba(255, 255, 255, 0.35) 50%, rgba(15, 23, 42, 0.05) 72%, rgba(15, 23, 42, 0.28) 100%); }
+    .ham-merged-count .ham-merged-ico { flex: 0 0 auto; width: var(--ham-merged-bee); height: var(--ham-merged-bee); color: var(--amber); filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--surface-0) 50%, transparent)); }
+    .ham-merged-count .ham-merged-n { font-variant-numeric: tabular-nums; font-weight: var(--fw-semibold); font-size: var(--ham-odo-digit); font-family: var(--font-mono); }
     .ham-merged-count .ham-merged-sub { color: var(--text-faint, var(--muted)); font-variant-numeric: tabular-nums; padding-left: var(--sp-2); border-left: var(--line-width) solid var(--line-subtle); }
     .ham-merged-count.cue-tick { animation: cue-count-pop 320ms ease-out; }
-    .ham-merged-count .ham-merged-n, .ham-merged-count .ham-merged-sub { position: relative; }
-    .ham-merged-count .ham-odo-rolling { color: transparent; }
-    .ham-odo { position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden; white-space: pre; pointer-events: none; }
-    .ham-merged-count .ham-merged-n .ham-odo { color: var(--text); text-indent: 0; padding-left: 0.15em; }
-    /* The dark theme's token sheet has no --text-faint (only body.light-mode
-       sets it), so without a fallback the overlay inherited the rolling
-       line's transparent colour and the day/week counts vanished mid-roll. */
-    .ham-merged-count .ham-merged-sub .ham-odo { left: var(--sp-2); color: var(--text-faint, var(--muted)); }
+    .ham-merged-count .ham-merged-n, .ham-merged-count .ham-merged-sub { position: relative; display: inline-flex; align-items: center; }
+    /* The drum: one wrap of columns per counter, laid out inline (it is the
+       element's only content, so it sets the width). */
+    .ham-odo { display: inline-flex; align-items: stretch; white-space: pre; pointer-events: none; }
     .ham-odo-static, .ham-odo-col, .ham-odo-d { display: block; height: 1.25em; line-height: 1.25; }
+    .ham-odo-static { align-self: center; }
     .ham-odo-col { overflow: hidden; }
-    .ham-odo-strip { display: block; transform: translateY(0); transition: transform var(--odo-ms, 900ms) cubic-bezier(0.22, 0.61, 0.36, 1); }
-    .ham-odo-run .ham-odo-strip { transform: translateY(var(--odo-shift, 0%)); }
+    .ham-odo-d { text-align: center; }
+    .ham-odo-strip { display: block; transform: translateY(var(--odo-shift, 0%)); }
+    .ham-odo-run .ham-odo-roll .ham-odo-strip { transition: transform var(--odo-ms, 900ms) cubic-bezier(0.22, 0.61, 0.36, 1); }
+    .ham-odo:not(.ham-odo-run) .ham-odo-roll .ham-odo-strip { transform: translateY(0); }
+    /* The all-time count's wheels are drum cells: dark inset, a subtle
+       roller gradient (lighter band through the middle, darker at the lip
+       and the foot), an inner shadow at top and bottom, a hairline between
+       digits, the outer corners rounded. Light mode keeps the inset but on
+       a paler drum. */
+    .ham-merged-count .ham-merged-n .ham-odo { gap: 0; border-radius: var(--r-sm); overflow: hidden; border: var(--line-width) solid color-mix(in srgb, var(--surface-0) 70%, var(--line-strong)); box-shadow: 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent); }
+    .ham-merged-count .ham-merged-n .ham-odo-col { position: relative; min-width: 0.78em; height: 1.35em; line-height: 1.35; padding: 0; color: var(--text); background: linear-gradient(to bottom, color-mix(in srgb, var(--surface-0) 92%, black) 0%, var(--surface-3) 42%, var(--surface-3) 58%, color-mix(in srgb, var(--surface-0) 92%, black) 100%); box-shadow: inset 0 5px 5px -4px color-mix(in srgb, black 75%, transparent), inset 0 -5px 5px -4px color-mix(in srgb, black 75%, transparent); }
+    .ham-merged-count .ham-merged-n .ham-odo-col + .ham-odo-col { border-left: var(--line-width) solid color-mix(in srgb, var(--surface-0) 80%, black); }
+    .ham-merged-count .ham-merged-n .ham-odo-col .ham-odo-d { height: 1.35em; line-height: 1.35; }
+    body.light-mode .ham-merged-count .ham-merged-n .ham-odo-col { color: var(--text); background: linear-gradient(to bottom, color-mix(in srgb, var(--surface-3) 80%, black) 0%, var(--surface-0) 42%, var(--surface-0) 58%, color-mix(in srgb, var(--surface-3) 80%, black) 100%); box-shadow: inset 0 5px 5px -4px color-mix(in srgb, black 35%, transparent), inset 0 -5px 5px -4px color-mix(in srgb, black 35%, transparent); }
+    body.light-mode .ham-merged-count .ham-merged-n .ham-odo-col + .ham-odo-col { border-left-color: color-mix(in srgb, var(--surface-3) 60%, black); }
     .ham-merged-pop { position: absolute; right: var(--sp-2); top: calc(var(--full-size) - var(--sp-1)); min-width: 22rem; max-width: 34rem; max-height: 60vh; overflow: auto; padding: var(--sp-4) var(--sp-5); border: var(--line-width) solid var(--line); border-radius: var(--r-lg); background: var(--panel-strong); box-shadow: var(--shadow-raised); font-size: var(--fs-sm); color: var(--text); z-index: var(--z-cue-flight); }
     .ham-merged-pop-head { display: flex; justify-content: space-between; gap: var(--sp-4); margin-bottom: var(--sp-3); font-weight: var(--fw-semibold); }
     .ham-merged-pop-head .ham-merged-pop-sum { color: var(--text-faint); font-weight: var(--fw-medium); }
@@ -1820,7 +1853,7 @@
     @keyframes cue-flight { 0% { opacity: 0; transform: translate(0, 0) scale(0.9); } 12% { opacity: 1; transform: translate(calc(var(--cue-dx, 0px) * 0.08), calc(var(--cue-dy, 0px) * 0.1)) scale(1.1); } 55% { opacity: 1; transform: translate(calc(var(--cue-dx, 0px) * 0.45 + 10px), calc(var(--cue-dy, 0px) * 0.62)) scale(1.05); } 100% { opacity: var(--cue-end-opacity, 0.25); transform: translate(var(--cue-dx, 0px), var(--cue-dy, 0px)) scale(0.7); } }
     @keyframes cue-flight-fade { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
     @keyframes cue-count-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
-    @media (prefers-reduced-motion: reduce) { .cue-flight { animation-name: cue-flight-fade; } .ham-merged-count.cue-tick { animation: none; } .ham-odo-strip { transition: none; } .cue-merged .ham-seg.cap { animation-duration: 0.01ms; } .merge-banner, .merge-banner.merge-banner-out { animation: none; } }
+    @media (prefers-reduced-motion: reduce) { .cue-flight { animation-name: cue-flight-fade; } .ham-merged-count.cue-tick { animation: none; } .ham-odo-strip { transition: none !important; } .cue-merged .ham-seg.cap { animation-duration: 0.01ms; } .merge-banner, .merge-banner.merge-banner-out { animation: none; } }
     .ham-rm-preview .cue-flight { animation-name: cue-flight-fade; }
     @media (prefers-reduced-motion: reduce) { .cue-working .ham-seg.active .ham-active-ico, .cue-spin, .cue-acting .ham-seg.active, .cue-event { animation: none; } }
     @keyframes ham-breathe-human { 0%, 100% { opacity: 0; } 50% { opacity: 0.55; } }
@@ -6195,6 +6228,17 @@
         justify-content: center;
       }
     }
+    /* Narrowest phones (iPhone SE/mini class): the right strip's five icon
+       chips plus the ≡ and ACMM chips no longer fit one row, and the strip
+       clips overflow rather than wrapping, so the lowest-priority chips go.
+       Both stay reachable — Feedback from the drawer and the account menu,
+       Settings from the account menu (#15476). */
+    @media (max-width: 360px) {
+      #feedback-bug-btn,
+      #oc-settings-btn {
+        display: none;
+      }
+    }
 
     /* ══ Input system (Phase 2) ══
        One recipe for text inputs/selects/textareas (derived from the old
@@ -7103,6 +7147,7 @@
           <a href="#" id="oc-gh-menu-my-hives" class="avatar-menu-item" target="_blank" rel="noopener noreferrer" hidden>My hives ↗</a>
           <a href="/api/docs" target="_blank" class="avatar-menu-item">API Docs ↗</a>
           <button class="avatar-menu-item" type="button" data-action="openFeedbackModal" data-arg0="submit">Feedback</button>
+          <button class="avatar-menu-item" type="button" id="oc-gh-menu-settings" data-action="openConfigDialog" data-arg0="governor">Settings</button>
           <div class="avatar-menu-divider"></div>
           <div id="oc-gh-menu-export-label" class="avatar-menu-label" hidden>Export</div>
           <button type="button" id="oc-gh-menu-widget" class="avatar-menu-item" data-action="hiveOpenTextEndpoint" data-arg0="/api/widget" data-arg1="hive-widget.json" data-arg-types="s,s" title="View Übersicht widget JSON">⬇ Widget</button>
@@ -14175,7 +14220,14 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
     // "workflow-files" / "untrusted-author" / "branch-protection", falling
     // back to "policy"); the tooltip carries the payload's one-sentence
     // human_merge_reason_text (hivecommons/hive#14658).
-    const STAGE_TRACKER_HUMAN_MERGE_REASON_WORD = { 'workflow-files': 'workflow files', 'tests-removed': 'tests removed', 'manual-merge-policy': 'manual-merge policy', 'branch-protection': 'branch protection', 'merge-method': 'merge method', 'auto-merge-off': 'auto-merge off', 'untrusted-author': 'untrusted author', 'unauthorized': 'unauthorized', 'reviewer-deferred': 'reviewer deferred', 'policy': 'policy' };
+    const STAGE_TRACKER_HUMAN_MERGE_REASON_WORD = { 'workflow-files': 'workflow files', 'tests-removed': 'tests removed', 'manual-merge-policy': 'manual-merge policy', 'branch-protection': 'branch protection', 'merge-method': 'merge method', 'auto-merge-off': 'auto-merge off', 'untrusted-author': 'untrusted author', 'unauthorized': 'unauthorized', 'reviewer-deferred': 'reviewer deferred', 'breaking-change': 'human merge', 'policy': 'policy' };
+    // 090 under the breaking-change rule (human_merge_reason
+    // "breaking-change": a ⚠️ title or needs-owner-merge label,
+    // hivecommons/hive#15442): no approval lets the hive merge it, so the
+    // word is the stage's own, "Ready for human merge", and the chip says
+    // "human merge".
+    const STAGE_TRACKER_BREAKING_CHANGE_CODE = 'breaking-change';
+    const STAGE_TRACKER_READY_FOR_HUMAN_MERGE_WORD = 'Ready for human merge';
     function stageTrackerHumanMergeReasonWord(item) {
       const code = String((item && item.human_merge_reason) || '').trim();
       if (!code) return '';
@@ -14184,7 +14236,9 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
     function stageTrackerManualMergeWord(item) {
       const approver = String((item && item.human_approver) || '').trim();
       const why = stageTrackerHumanMergeReasonWord(item);
-      return STAGE_TRACKER_MANUAL_MERGE_WORD + (why ? ' · ' + why : '') + (approver ? ' · approved by @' + approver : '');
+      const code = String((item && item.human_merge_reason) || '').trim();
+      const lead = code === STAGE_TRACKER_BREAKING_CHANGE_CODE ? STAGE_TRACKER_READY_FOR_HUMAN_MERGE_WORD : STAGE_TRACKER_MANUAL_MERGE_WORD;
+      return lead + (why ? ' · ' + why : '') + (approver ? ' · approved by @' + approver : '');
     }
     // The plain 090 word (no manual-merge rule): the stage's short word
     // plus the reason, "Ready for human merge · untrusted author".
@@ -14212,6 +14266,8 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       if (state === 'closed') return 'Adopted → #' + by + ' (closed) · recovering';
       if (state === 'closed-twice') return 'Adopted → #' + by + ' (closed twice) · needs a person';
       if (state === 'copy-failed') return 'Adopted → #' + by + ' (copy failed) · reopened, needs a person';
+      // hivecommons/hive#15307: one label while the fixer works (#15416 rule).
+      if (state === 'resolving-conflicts') return 'Adopting · fixer resolving conflicts';
       return 'Adopted → #' + by;
     }
     const STAGE_TRACKER_UNAUTHORIZED_WORD = 'Awaiting human';
@@ -14640,6 +14696,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       if (n === 0 && mods.indexOf('blocked') >= 0) return 'Open · blocked';
       if (n === 0 && mods.indexOf('draft') >= 0) return 'Open · draft';
       // Guarded: test harnesses lift this function by name without the 000-new helpers.
+      if (n === 0 && typeof stageTrackerOpenTriageNeeded === 'function' && stageTrackerOpenTriageNeeded(item)) return 'Triage needed';
       if (n === 0 && typeof stageTrackerNewState === 'function' && stageTrackerNewState(item)) return 'New';
       // An issue parked on a person (045, or a pre-045 085 with no covering
       // PR) is parked itself, so no "(its PR)" suffix.
@@ -15586,10 +15643,14 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
         // names who moves it next (hivecommons/hive#15094).
         const openNew = n === 0 && state === 'active' && !openHold && !openBlocked && !openDraft && typeof stageTrackerNewState === 'function' && !!stageTrackerNewState(item);
         const advisory = n === 0 && state === 'active' && !openHold && !openBlocked && typeof stageTrackerAdvisoryOf === 'function' ? stageTrackerAdvisoryOf(item) : null;
+        // An issue waiting on a maintainer's triage says so in the column
+        // (hivecommons/hive#15437 read "New" while the caption held the ask).
+        const openTriage = n === 0 && state === 'active' && !openHold && !openBlocked && !openDraft && !advisory && typeof stageTrackerOpenTriageNeeded === 'function' && stageTrackerOpenTriageNeeded(item);
         if (openHold) word = 'Open · hold';
         else if (openBlocked) word = 'Open · blocked';
         else if (advisory) word = advisory.chip || 'Advisory · read & close';
         else if (openDraft) word = 'Draft';
+        else if (openTriage) word = 'Triage needed';
         else if (openNew) word = 'New';
         // A plain, blocked or draft Open step (no stage label, not held)
         // says how long it has sat there, from the same instant the since
@@ -15751,6 +15812,20 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       if (!item || (Number(item.stage) || 0) !== 0 || !item.new || typeof item.new !== 'object') return null;
       return item.new;
     }
+    // Pure: an issue in the Open column that waits on a maintainer's triage
+    // — the needs-triage pill, or a 000-new reporter-trust hold whose next
+    // mover is the maintainer (triage gate next) before the awaiting label
+    // has landed. The chevron then says "Triage needed", not "New": the ask
+    // is in the column, not only in the caption.
+    function stageTrackerOpenTriageNeeded(item) {
+      if (!item || item.kind === 'pr' || (Number(item.stage) || 0) !== 0) return false;
+      const mods = Array.isArray(item.modifiers) ? item.modifiers : [];
+      if (mods.indexOf('needs-triage') >= 0) return true;
+      const fresh = stageTrackerNewState(item);
+      if (!fresh || fresh.next_mover !== 'maintainer') return false;
+      const gates = Array.isArray(fresh.gates) ? fresh.gates : [];
+      return gates.some(g => g && g.name === 'triage' && g.state === 'next');
+    }
     // "Next: …" and "Gates ahead: triage ✓ → actionable → claimed" for the
     // row tooltip and the lit chevron. nowMs refreshes the next-pass countdown.
     function stageTrackerNewLines(item, nowMs) {
@@ -15845,7 +15920,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
           tip = sg.label + (sg.description ? ' — ' + sg.description : '');
           if (sg.blocked) tip += ' — ' + stageTrackerBlockedTip(item);
           if (sg.draft) tip += ' — ' + STAGE_TRACKER_DRAFT_TIP;
-          if (sg.isNew && typeof stageTrackerNewLines === 'function') tip = 'New — ' + stageTrackerNewLines(item, nowMs).join(' — ');
+          if (sg.isNew && typeof stageTrackerNewLines === 'function') tip = (typeof stageTrackerOpenTriageNeeded === 'function' && stageTrackerOpenTriageNeeded(item) ? 'Triage needed — ' : 'New — ') + stageTrackerNewLines(item, nowMs).join(' — ');
           if (sg.advisory) tip = (item.advisory && item.advisory.caption) || 'Advisory for maintainers · read, then close';
           if (sg.openSince) tip += ' — open since ' + new Date(sg.openSince.ms).toISOString() + (sg.openSince.fromCreated ? ' (opened)' : '');
           // The shared Merge gate word hides 080 vs 095 vs 100; the chevron tooltip carries it.
@@ -16498,13 +16573,22 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       ctx.nowMs = typeof nowMs === 'number' ? nowMs : Date.now();
       return stageTrackerLeadActionHtml(item, ctx);
     }
+    // PR link, then the lineage chip (null = none), then the base pill.
+    function stageTrackerPRPillsHtml(ref, lineage, baseRef) {
+      return ref + (lineage == null ? '' : ' ' + lineage) + (baseRef ? ` <span class="ham-badge">${esc(baseRef)}</span>` : '');
+    }
     function stageTrackerSubRowHtml(lp, issue, stages, nowMs, ctx) {
       const pr = stageTrackerLinkedPRItem(issue, lp);
       const superseded = typeof stageTrackerLinkedSupersededText === 'function' ? stageTrackerLinkedSupersededText(lp, issue) : '';
       let ref = stageTrackerPRRef(pr.number, pr.url, pr.author_kind, pr.author, pr.title, (pr.title ? pr.title + ' · ' : '') + (superseded || stageTrackerTooltip(pr, nowMs)) + ' · ' + stageTrackerLinkedTip(issue, pr.number, ctx));
-      if (lp.base_ref) ref += ` <span class="ham-badge">${esc(lp.base_ref)}</span>`;
+      // One line (hivecommons/hive: "consolidate from 3 lines of text to
+      // 1"): connector, repo chip, author icon + #N + title, the lineage /
+      // adopted-from chip, then the base pill — all siblings of the flex-row
+      // PR cell; the title ellipsizes, the pills never shrink.
+      const lineage = superseded ? '' : ((typeof stageTrackerLineageChipHtml === 'function' ? stageTrackerLineageChipHtml(pr, nowMs) : '') || (typeof stageTrackerAdoptedFromChipHtml === 'function' ? stageTrackerAdoptedFromChipHtml(pr, nowMs) : ''));
       const chip = ctx && ctx.repoChips ? stageTrackerRepoChipHtml(pr.repo, ctx) : '';
       if (chip) ref = `<span class="ham-pr-line">${chip}${ref}</span>`;
+      ref = stageTrackerPRPillsHtml(ref, lineage || null, lp.base_ref);
       ref = STAGE_TRACKER_LINKED_GLYPH + ref;
       if (superseded) {
         // The adopted original: one dimmed line, no chevron track, no row
@@ -16518,7 +16602,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       return `<div class="ham-sub${typeof stageTrackerCueClasses === 'function' ? stageTrackerCueClasses(pr, ctx) : ''}" data-ham-kind="pr" data-ham-stage="${pr.stage}" data-ham-sub-key="${esc(stageTrackerItemKey(pr))}">
           ${typeof stageTrackerRowToolsHtml === 'function' ? stageTrackerRowToolsHtml(pr) : ''}
           <div class="ham-row-head">
-            ${stageTrackerHeadColsHtml([ref], '', stageTrackerActedBadgeHtml(pr, nowMs) + ((typeof stageTrackerLineageChipHtml === 'function' ? stageTrackerLineageChipHtml(pr, nowMs) : '') || (typeof stageTrackerAdoptedFromChipHtml === 'function' ? stageTrackerAdoptedFromChipHtml(pr, nowMs) : '')) + stageTrackerChipsHtml(pr) + (typeof stageTrackerLeadButtonHtml === 'function' ? stageTrackerLeadButtonHtml(pr, nowMs) : ''))}
+            ${stageTrackerHeadColsHtml([ref], '', stageTrackerActedBadgeHtml(pr, nowMs) + stageTrackerChipsHtml(pr) + (typeof stageTrackerLeadButtonHtml === 'function' ? stageTrackerLeadButtonHtml(pr, nowMs) : ''))}
           </div>
           <div class="ham-strip-row">
             <ol class="ham-strip" aria-label="Pipeline progress"${stageTrackerMoveAttrs(stageTrackerItemKey(pr), ctx)}>${stageTrackerStripItems(pr, stages, { from: STAGE_TRACKER_PR_COLUMN }, nowMs, ctx)}</ol>
@@ -16727,7 +16811,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
           // One covering PR: a single entry whose strip the PR's stage drives.
           const lp = linked[0];
           const who = (lp.author_kind || 'hive') + (lp.author ? ' · @' + lp.author : '');
-          prRefs = [STAGE_TRACKER_LINKED_GLYPH + stageTrackerPRRef(lp.number, lp.url, lp.author_kind || '', lp.author, lp.title, (lp.title ? lp.title + '\n' : '') + 'Author: ' + who + ' · ' + stageTrackerLinkedTip(item, lp.number, ctx)) + (lp.base_ref ? ` <span class="ham-badge">${esc(lp.base_ref)}</span>` : '') + (lp.lineage && typeof stageTrackerLineageChipHtml === 'function' ? ' ' + stageTrackerLineageChipHtml(lp, nowMs) : '')];
+          prRefs = [STAGE_TRACKER_LINKED_GLYPH + stageTrackerPRPillsHtml(stageTrackerPRRef(lp.number, lp.url, lp.author_kind || '', lp.author, lp.title, (lp.title ? lp.title + '\n' : '') + 'Author: ' + who + ' · ' + stageTrackerLinkedTip(item, lp.number, ctx)), lp.lineage && typeof stageTrackerLineageChipHtml === 'function' ? stageTrackerLineageChipHtml(lp, nowMs) : null, lp.base_ref)];
           shown = Object.assign({}, item, { via_pr: true, stage: lp.stage || 40, stage_since: lp.stage_since || item.stage_since, modifiers: lp.modifiers || item.modifiers, deferred_modifiers: lp.deferred_modifiers || item.deferred_modifiers || [], caption: lp.caption || item.caption, reason: lp.reason || item.reason,
             human_approver: lp.human_approver || '', manual_merge: !!lp.manual_merge, human_merge_reason: lp.human_merge_reason || '', human_merge_reason_text: lp.human_merge_reason_text || '', sentinel_alert: !!lp.sentinel_alert, sentinel_reason: lp.sentinel_reason || '', head: lp.head || '', decision_needed: lp.decision_needed || null, hold: lp.hold || null, adoption: lp.adoption || null, stage_actor: lp.stage_actor || item.stage_actor || null, claimant: lp.claimant || null, presence: lp.presence || null, rework: lp.rework || null, merge_gate: lp.merge_gate || null, merge_train: lp.merge_train || null, decided: lp.decided || item.decided || null });
         } else if (linked.length) {
@@ -17402,20 +17486,26 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       return { number: 0, text: 'no linked issue' };
     }
     // Pure: the chip(s) beside a closed issue in a PR row's issue slot.
-    // `closed` when nothing more is known; `closed by #N` linking to the
-    // merged PR that closed it (the server's merged ledger) when another PR
-    // delivered the issue — the open PR on this row is then a duplicate
-    // (hivecommons/hive#15232). A not-planned close adds an "issue closed
-    // (not planned)" chip: the PR may be moot (hivecommons/hive#14655).
+    // `closed by #N` linking to the merged PR that closed it (GitHub's
+    // closedByPullRequestsReferences, else the server's merged ledger) when
+    // another PR delivered the issue — the open PR on this row is then a
+    // follow-up or a duplicate (hivecommons/hive#15232). When no merged
+    // closer is known the chip still says the issue closed while THIS PR is
+    // unmerged, so the row cannot read as the issue having been closed by
+    // an unmerged PR: the hive only ever closes an issue after its PR has
+    // merged. A not-planned close adds an "issue closed (not planned)"
+    // chip: the PR may be moot (hivecommons/hive#14655).
     function stageTrackerClosedChipHtml(item, slot) {
+      // Inline (not a module const): the UI test lifts this function alone.
+      const unmergedTip = 'Issue #' + slot.number + ' is closed, but this PR is still open and unmerged: it did not close the issue. A person or another merged PR did (the hive closes an issue only after its PR merges); this hive could not name the closer.';
       const notPlanned = String(slot.state_reason || '') === 'not_planned';
       const by = Number(slot.closed_by) || 0;
       let chip;
       if (by > 0 && by !== Number(item.number)) {
         const url = stageTrackerItemURL(item.repo, by, 'pull', item.url);
-        chip = `<a class="ham-badge ham-issue-closed-chip ham-closed-by-chip" href="${esc(url)}" target="_blank" rel="noopener" title="${esc('Issue #' + slot.number + ' was closed by the merge of #' + by + '; this PR is still open against it')}">closed by #${by}</a>`;
+        chip = `<a class="ham-badge ham-issue-closed-chip ham-closed-by-chip" href="${esc(url)}" target="_blank" rel="noopener" title="${esc('Issue #' + slot.number + ' was closed by the merge of #' + by + '; this PR is still open against it and merging it will not close anything')}">closed by #${by}</a>`;
       } else {
-        chip = '<span class="ham-badge ham-issue-closed-chip">closed</span>';
+        chip = `<span class="ham-badge ham-issue-closed-chip" title="${esc(unmergedTip)}">closed · this PR unmerged</span>`;
       }
       return chip + (notPlanned ? ' <span class="ham-badge ham-issue-closed-chip ham-closed-not-planned" title="The issue this PR closes was closed as not planned; the PR may be moot.">issue closed (not planned)</span>' : '');
     }
@@ -18792,8 +18882,35 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       // One click for the whole selection: each item is decided on its own
       // (a nested PR sub-row by its own number), summed up in one toast.
       out.push(Object.assign({}, submenu[0], { label: 'Let hive decide (' + items.length + ' selected)', hint: 'per item' }));
+      // Accept triage for every selected issue waiting on a maintainer's
+      // triage, one click (hivecommons/hive#15475: four "Triage needed"
+      // rows selected, no bulk Accept triage). Rows that are not — PRs, issues past 015 —
+      // are skipped, and the count says so ("3 of 4"). It leads the bar
+      // and the menu when the whole selection is triage, as on one row.
+      const triage = stageTrackerSelectionTriage(items, per);
+      if (triage) { if (triage.lead) out.unshift(triage); else out.push(triage); }
       for (const id of STAGE_TRACKER_SEL_ACTIONS) out.push(Object.assign({ id, label: STAGE_TRACKER_ACTION_LABELS[id] + (id === 'needs-human' ? '…' : id === 'copy' ? 's' : '') }, judge(id)));
       return out;
+    }
+    // Pure: the selection's Accept triage entry, or null when no selected
+    // row is waiting on triage. `per` is the per-item flat action map
+    // stageTrackerSelectionActions built; enabled when every eligible row
+    // allows it (the first reason otherwise), `lead` when every selected
+    // row is eligible.
+    function stageTrackerSelectionTriage(items, per) {
+      const eligible = per.filter(p => p.flat['accept-triage']);
+      if (!eligible.length) return null;
+      const blocked = eligible.find(p => !p.flat['accept-triage'].enabled);
+      const all = eligible.length === items.length;
+      return {
+        id: 'accept-triage',
+        label: 'Accept triage (' + (all ? items.length + ' selected' : eligible.length + ' of ' + items.length) + ')',
+        hint: all ? 'per issue' : 'skips the ' + (items.length - eligible.length) + ' not waiting on triage',
+        enabled: !blocked,
+        why: blocked ? blocked.flat['accept-triage'].why + ' (' + stageTrackerRefOf(blocked.it) + ')' : '',
+        lead: all,
+        count: eligible.length,
+      };
     }
     function stageTrackerMenuItemHtml(a) {
       const dis = a.enabled ? '' : ` aria-disabled="true" title="${esc(a.why || '')}"`;
@@ -19241,9 +19358,11 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
     }
     // Pure: the selection bar — count, Clear, and the shared actions
     // (disabled ones keep their tooltip, so aria-disabled rather than disabled).
+    // An entry flagged `lead` (Accept triage when every selected row waits
+    // on triage) renders as the row header's lead button, not a chip.
     function stageTrackerSelBarHtml(items, actions) {
       if (!items.length) return '';
-      const btn = a => `<button type="button" class="ham-chip" data-action="hamSelAction" data-arg0="${esc(a.id)}" data-arg-types="s,t"${a.enabled ? '' : ` aria-disabled="true" title="${esc(a.why || '')}"`}>${esc(a.label)}</button>`;
+      const btn = a => `<button type="button" class="${a.lead ? 'ham-lead-act' : 'ham-chip'}" data-action="hamSelAction" data-arg0="${esc(a.id)}" data-arg-types="s,t"${a.enabled ? '' : ` aria-disabled="true" title="${esc(a.why || '')}"`}>${esc(a.label)}</button>`;
       return `<span class="ham-sel-count">${items.length} selected</span><button type="button" class="ham-chip" data-action="hamSelClear">Clear</button>${actions.map(btn).join('')}`;
     }
     function stageTrackerRenderSelBar() {
@@ -19307,12 +19426,14 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       }
       return null;
     }
-    // Pure: one line for the result toast.
+    // Pure: one line for the result toast. A bulk Accept triage sums up as
+    // "Accepted 4 issues" (the per-row toasts carry the rest).
     function stageTrackerActionSummary(label, results, id) {
       const n = results.length;
       const fails = results.filter(r => !r.ok);
       const ok = n - fails.length;
       let msg = label + ': ' + (id === 'decide:delegate' || id === 'decide:delegate-all' ? stageTrackerDelegateTally(results) : ok + '/' + n + ' done');
+      if (id === 'accept-triage' && n > 1) msg = 'Accepted ' + ok + (fails.length ? ' of ' + n : '') + ' issue' + (ok === 1 && !fails.length ? '' : 's');
       const debounced = results.some(r => r.ok && r.data && (r.data.status === 'debounced' || r.data.status === 'in-progress'));
       if (debounced) msg += ' (a rescan was already running — the next one is queued by the hive)';
       if (fails.length) {
@@ -20184,6 +20305,12 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
         // Adopt now / Reroute act on the PR waiting on its contributor (072 / 071).
         items = items.map(stageTrackerTakeoverTarget).filter(Boolean);
         if (!items.length) return { toasts: [], pending: [] };
+      } else if (id === 'accept-triage') {
+        // Accept triage acts on the issues waiting on it; a bulk selection
+        // may carry PRs or issues past 015, which are skipped and counted
+        // out in the menu label ("3 of 4").
+        items = items.filter(stageTrackerTriageNeeded);
+        if (!items.length) { stageTrackerNothingToActOn(id, rows); return { toasts: [], pending: [] }; }
       } else if (id === 'decide:close-read') {
         // Close (read) acts on the advisory row itself: an advisory is not
         // a decision park, so it has no decision target
@@ -20582,7 +20709,13 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
        values last shown are kept in sessionStorage
        (STAGE_TRACKER_MERGED_LAST_KEY) so a reload rolls up from them. The
        glyph is drawn at --cue-flight-size (two type steps up) with a
-       theme-aware halo; STAGE_TRACKER_CELEBRATE_GLYPH_HALF centres it. */
+       theme-aware halo; STAGE_TRACKER_CELEBRATE_GLYPH_HALF centres it.
+       Owner (2026-10-29, again): "where is my odometer look and feel?" —
+       that PR sized the flying bee, not the pill's, and the roll was an
+       overlay that existed for 900 ms over plain text. The counter is
+       now a drum at rest, always (stageTrackerOdometerRest /
+       stageTrackerOdometerDraw): a wheel per digit, the day/week line the
+       same columns drawn plain; the pill's bee is --ham-merged-bee. */
     const STAGE_TRACKER_CELEBRATE_KEY = 'hive.tracker.celebrate';
     const STAGE_TRACKER_MERGED_LAST_KEY = 'hive.tracker.merged.last';
     const STAGE_TRACKER_CELEBRATE_GLYPH_KEY = 'hive.tracker.celebrate_glyph';
@@ -20754,9 +20887,11 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
     // Pure: the odometer columns for a change of text from `from` to `to`,
     // or null when nothing should roll — the texts split into different
     // static runs ("201 today · 730 this week" keeps its words), no number
-    // rose, or every rise is a fall elsewhere. A column is { text } (sits
-    // still: static runs, unchanged digits, numbers that fell or held) or
-    // { steps: ['9', '0'] } — the digits the column passes, old to new. In
+    // rose, or every rise is a fall elsewhere. A column is { text } (a
+    // static run of non-digits), a wheel that sits still — { steps: ['4'] },
+    // an unchanged digit or one of a number that fell or held, drawn as a
+    // drum cell like the rest — or a wheel that rolls, { steps: ['9', '0']
+    // } — the digits the column passes, old to new. In
     // a number that rose, the first changed wheel rolls just the digits
     // between old and new (wrapping past 9 the way a carry does); every
     // wheel to its right — and the rightmost wheel always — spins through
@@ -20774,7 +20909,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
         const num = /^\d+$/.test(b[i]);
         if (num !== /^\d+$/.test(a[i])) return null;
         if (!num) { if (a[i] !== b[i]) return null; cols.push({ text: b[i] }); continue; }
-        if (Number(b[i]) <= Number(a[i]) || a[i].length > b[i].length) { cols.push({ text: b[i] }); continue; }
+        if (Number(b[i]) <= Number(a[i]) || a[i].length > b[i].length) { for (const d of b[i]) cols.push({ steps: [d] }); continue; }
         rose = true;
         const old = a[i].padStart(b[i].length, ' ');
         const last = b[i].length - 1;
@@ -20783,7 +20918,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
         for (let j = 0; j <= last; j++) {
           const o = old[j], nw = b[i][j];
           const spin = j > first || j === last;
-          if (o === nw && !spin) { cols.push({ text: nw }); continue; }
+          if (o === nw && !spin) { cols.push({ steps: [nw] }); continue; }
           const steps = [o];
           if (o === ' ') steps.push(nw);
           else { let d = Number(o); do { d = (d + 1) % 10; steps.push(String(d)); } while (d !== Number(nw) || (spin && steps.length <= STAGE_TRACKER_ODOMETER_TURN)); }
@@ -20792,16 +20927,34 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       }
       return rose ? cols : null;
     }
-    // Stateful: write `text` into el, rolling the digits that rose like an
-    // odometer. The element's own text is always the plain value (it sets
-    // the width, and it is what a screen reader and a test read); the roll
-    // is an aria-hidden overlay of digit columns appended over it for `ms`
-    // (STAGE_TRACKER_ODOMETER_MS unless given), during which the plain
-    // text is transparent (.ham-odo-rolling). The value last written is
-    // kept on data-odo-value so a redraw mid-roll compares against it, not
-    // the overlay's digits. Instant (no overlay) on the first write, under
-    // reduced motion, and when stageTrackerOdometerPlan says nothing rolls.
-    // Returns whether a roll started.
+    // Pure: the columns that draw `text` at rest — every digit its own
+    // { steps: [d] } wheel, every non-digit run a { text } plate — the
+    // shape stageTrackerOdometerPlan returns when something rolls, so one
+    // renderer draws both states.
+    function stageTrackerOdometerRest(text) {
+      const cols = [];
+      for (const run of (String(text == null ? '' : text).match(/\d+|\D+/g) || [])) {
+        if (/^\d+$/.test(run)) for (const d of run) cols.push({ steps: [d] });
+        else cols.push({ text: run });
+      }
+      return cols;
+    }
+    // Stateful: write `text` into el as an odometer. The element always
+    // holds one aria-hidden .ham-odo drum of columns: a .ham-odo-col wheel
+    // per digit (a .ham-odo-strip of .ham-odo-d cells; one cell at rest)
+    // and a .ham-odo-static plate per run of other characters, so the
+    // Merged counter looks like a mileage counter at rest, not only
+    // mid-roll (hivecommons/hive#15398 follow-up: the previous overlay
+    // existed for 900 ms and the resting value was plain text). The value
+    // is on data-odo-value (what a redraw mid-roll compares against, and
+    // what the node tests read) and aria-label (what a screen reader
+    // reads; the drum's cells are hidden from it). A rise (per
+    // stageTrackerOdometerPlan) gives each wheel that changes the digits it
+    // passes and the class ham-odo-roll; the strip slides for `ms`
+    // (STAGE_TRACKER_ODOMETER_MS unless given), then settles to its final
+    // cell. Instant (drawn at rest) on the first write, under reduced
+    // motion, and when the plan says nothing rolls. Returns whether a roll
+    // started.
     function stageTrackerOdometerSet(el, text, ms) {
       if (!el) return false;
       text = String(text);
@@ -20809,19 +20962,42 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       const prev = el.getAttribute('data-odo-value');
       if (prev === text) return false;
       el.setAttribute('data-odo-value', text);
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', text);
       if (el._odoTimer) { clearTimeout(el._odoTimer); el._odoTimer = 0; }
-      if (el._odoWrap) { el._odoWrap.remove(); el._odoWrap = null; }
-      el.textContent = text;
-      el.classList.remove('ham-odo-rolling');
       const plan = prev == null || stageTrackerReducedMotion() ? null : stageTrackerOdometerPlan(prev, text);
+      const wrap = stageTrackerOdometerDraw(el, plan || stageTrackerOdometerRest(text));
+      wrap.style.setProperty('--odo-ms', ms + 'ms');
+      el.classList.remove('ham-odo-rolling');
       if (!plan) return false;
-      const wrap = document.createElement('span');
-      wrap.className = 'ham-odo';
-      wrap.setAttribute('aria-hidden', 'true');
-      for (const c of plan) {
+      el.classList.add('ham-odo-rolling');
+      void el.offsetWidth;
+      wrap.classList.add('ham-odo-run');
+      el._odoTimer = setTimeout(() => {
+        el._odoTimer = 0;
+        el.classList.remove('ham-odo-rolling');
+        stageTrackerOdometerDraw(el, stageTrackerOdometerRest(el.getAttribute('data-odo-value')));
+      }, ms + 80);
+      return true;
+    }
+    // Stateful: (re)draw el's drum from columns; returns the .ham-odo wrap.
+    function stageTrackerOdometerDraw(el, cols) {
+      let wrap = el._odoWrap;
+      if (!wrap || wrap.parentNode !== el) {
+        // The markup's placeholder text ("0") goes; the drum is the content.
+        el.textContent = '';
+        wrap = document.createElement('span');
+        wrap.className = 'ham-odo';
+        wrap.setAttribute('aria-hidden', 'true');
+        el.appendChild(wrap);
+        el._odoWrap = wrap;
+      }
+      wrap.classList.remove('ham-odo-run');
+      while (wrap.children.length) wrap.children[0].remove();
+      for (const c of cols) {
         const col = document.createElement('span');
         if (!c.steps) { col.className = 'ham-odo-static'; col.textContent = c.text; wrap.appendChild(col); continue; }
-        col.className = 'ham-odo-col';
+        col.className = c.steps.length > 1 ? 'ham-odo-col ham-odo-roll' : 'ham-odo-col';
         const strip = document.createElement('span');
         strip.className = 'ham-odo-strip';
         for (const d of c.steps) { const cell = document.createElement('span'); cell.className = 'ham-odo-d'; cell.textContent = d; strip.appendChild(cell); }
@@ -20829,14 +21005,7 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
         col.appendChild(strip);
         wrap.appendChild(col);
       }
-      wrap.style.setProperty('--odo-ms', ms + 'ms');
-      el.appendChild(wrap);
-      el._odoWrap = wrap;
-      el.classList.add('ham-odo-rolling');
-      void el.offsetWidth;
-      wrap.classList.add('ham-odo-run');
-      el._odoTimer = setTimeout(() => { el._odoTimer = 0; el._odoWrap = null; el.classList.remove('ham-odo-rolling'); wrap.remove(); }, ms + 80);
-      return true;
+      return wrap;
     }
     // Stateful: seed an element that has not been written yet with the
     // value it showed last time (so the first real write rolls up from
@@ -20846,7 +21015,9 @@ next kick: ${agentCollapsedTimestampDetail(nextMs, a && (a.nextKickAt || a.nextK
       if (!el || last == null || el.getAttribute('data-odo-value') != null) return false;
       if (!stageTrackerOdometerPlan(String(last), String(next))) return false;
       el.setAttribute('data-odo-value', String(last));
-      el.textContent = String(last);
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', String(last));
+      stageTrackerOdometerDraw(el, stageTrackerOdometerRest(String(last)));
       return true;
     }
     // Pure: the chip's remembered values ({ n, sub }) from a sessionStorage
@@ -45767,7 +45938,7 @@ function burnAreaChart() {
       { tab: 'Labels', section: 'Labels', label: 'Stage dwell overrides', key: 'governor.labels.stage.dwell', text: 'stage dwell stalled threshold governor.labels.stage.dwell' },
       { tab: 'Labels', section: 'Labels', label: 'Adoption of a maintainer\'s PR', key: 'governor.labels.stage.adoption.maintainer_policy', text: 'adoption maintainer policy adopt ask never maintainer own pr clanker disconnected offline adopt action governor.labels.stage.adoption.maintainer_policy' },
       { tab: 'Labels', section: 'Labels', label: 'Contributor nudge', key: 'governor.labels.stage.contributor_nudge.enabled', text: 'contributor nudge returned-to-contributor red ci fix-pr relay interrupt renudge presence window governor.labels.stage.contributor_nudge.enabled governor.labels.stage.contributor_nudge.renudge_interval governor.labels.stage.presence_window' },
-      { tab: 'Labels', section: 'Labels', label: 'Adopt red contributor PRs', key: 'governor.labels.stage.adoption.enabled', text: 'adoption adopted-by-hive stage 074 red contributor pr grace online offline supersede takeover in place after offline unregistered heartbeat governor.labels.stage.adoption.enabled governor.labels.stage.contributor_grace_online governor.labels.stage.contributor_grace_offline governor.labels.stage.adoption.after_offline governor.labels.stage.adoption.after_unregistered governor.labels.stage.adoption.in_place governor.labels.stage.adoption.strict_attribution strict attribution governor.labels.stage.adoption.auto_merge auto merge adopted head hive authority governor.labels.stage.adoption.supersede.close_first close first superseded reopen copy failed' },
+      { tab: 'Labels', section: 'Labels', label: 'Adopt red contributor PRs', key: 'governor.labels.stage.adoption.enabled', text: 'adoption adopted-by-hive stage 074 red contributor pr grace online offline supersede takeover in place after offline unregistered heartbeat governor.labels.stage.adoption.enabled governor.labels.stage.contributor_grace_online governor.labels.stage.contributor_grace_offline governor.labels.stage.adoption.after_offline governor.labels.stage.adoption.after_unregistered governor.labels.stage.adoption.in_place governor.labels.stage.adoption.strict_attribution strict attribution governor.labels.stage.adoption.auto_merge auto merge adopted head hive authority governor.labels.stage.adoption.supersede.close_first close first superseded reopen copy failed governor.labels.stage.adoption.offline_grace offline grace rebase failed twice fixer resolving conflicts' },
       { tab: 'Hub', section: 'Contributor Relay', label: 'Fix budget', key: 'contribute.max_parallel_fixes', text: 'fix budget parallel fixes focus window red pr fix-pr preempt spawn contribute.max_parallel_fixes contribute.min_focus_window' },
       { tab: 'Logging', section: 'Logging', label: 'Governor logging', key: 'governor.logging.max_size_mb', text: 'governor logging directory level compression max size age backups governor.logging.compress governor.logging.dir governor.logging.level governor.logging.max_age_days governor.logging.max_backups governor.logging.max_size_mb' },
       { tab: 'Advisory', section: 'Advisory', label: 'Advisory digest', key: 'governor.advisory.max_findings', text: 'advisory digest max findings show all staleness pr autoclose target linear issue retry backoff' },
@@ -52645,7 +52816,7 @@ function burnAreaChart() {
         <div class="config-field">
           <label for="cfg-stage-grace-offline">Offline contributor grace ${yamlHint('governor.labels.stage.contributor_grace_offline')}</label>
           <input type="text" id="cfg-stage-grace-offline" value="${esc(stageGraceOffline)}" placeholder="1h" data-change-action="markDirty" data-arg0="labels" data-arg1="stage_grace_offline" data-arg-types="s,s,w">
-          <div class="config-help">Go duration after the comment-only nudge before an offline or external author's red PR is adopted. With live hub presence the hive instead waits ${yamlHint('governor.labels.stage.adoption.after_offline')} (default 30m) after a registered relay's last heartbeat, or ${yamlHint('governor.labels.stage.adoption.after_unregistered')} (default 2h) for an author with no profile here, and adopts in place on the PR's own branch when GitHub permits ${yamlHint('governor.labels.stage.adoption.in_place')} (default on) rather than opening a superseding PR. An in-place adoption keeps a changed head only when GitHub links the commit to the App bot ${yamlHint('governor.labels.stage.adoption.strict_attribution')} (default on); otherwise the hive hands the PR back to the contributor. Once the hive owns the head, the contributor lane merges it under the hive's own authority when the hive-authored gates pass (CI green on the adopted head, reviewer verdict, DCO, diff fences, soak), without requiring the original author's trust tier ${yamlHint('governor.labels.stage.adoption.auto_merge')} (default on). When the hive supersedes instead, it closes the original in the same pass that opens its copy — one note naming the copy, <code>hive/superseded</code> — and reopens it if the copy is closed unmerged or red at two heads ${yamlHint('governor.labels.stage.adoption.supersede.close_first')} (default on; off keeps the original open at stage 074 until the copy merges).</div>
+          <div class="config-help">Go duration after the comment-only nudge before an offline or external author's red PR is adopted. With live hub presence the hive instead waits ${yamlHint('governor.labels.stage.adoption.after_offline')} (default 30m) after a registered relay's last heartbeat, or ${yamlHint('governor.labels.stage.adoption.after_unregistered')} (default 2h) for an author with no profile here, and adopts in place on the PR's own branch when GitHub permits ${yamlHint('governor.labels.stage.adoption.in_place')} (default on) rather than opening a superseding PR. An in-place adoption keeps a changed head only when GitHub links the commit to the App bot ${yamlHint('governor.labels.stage.adoption.strict_attribution')} (default on); otherwise the hive hands the PR back to the contributor. Once the hive owns the head, the contributor lane merges it under the hive's own authority when the hive-authored gates pass (CI green on the adopted head, reviewer verdict, DCO, diff fences, soak), without requiring the original author's trust tier ${yamlHint('governor.labels.stage.adoption.auto_merge')} (default on). When the hive supersedes instead, it closes the original in the same pass that opens its copy — one note naming the copy, <code>hive/superseded</code> — and reopens it if the copy is closed unmerged or red at two heads ${yamlHint('governor.labels.stage.adoption.supersede.close_first')} (default on; off keeps the original open at stage 074 until the copy merges). A copy that conflicts with the base is handed to the fixer's rebase-resolve episode (two attempts, then stage 085 <code>rebase-failed-twice</code>); an adoption attempt that opened nothing is retried once the author's clanker has stayed offline for ${yamlHint('governor.labels.stage.adoption.offline_grace')} (default 30m).</div>
         </div>
         ${renderReporterTrustBlock()}
         <h4>Writing guide</h4>
